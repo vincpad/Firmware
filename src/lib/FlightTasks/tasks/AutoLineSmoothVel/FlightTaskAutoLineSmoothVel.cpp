@@ -41,16 +41,22 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoLineSmoothVel::activate()
+bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAutoMapper2::activate();
+	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
+
+	checkSetpoints(last_setpoint);
+	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
+	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
+	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].reset(0.f, _velocity(i), _position(i));
+		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
-	_yaw_sp_prev = _yaw;
+	_yaw_sp_prev = last_setpoint.yaw;
 	_updateTrajConstraints();
+	_initEkfResetCounters();
 
 	return ret;
 }
@@ -63,6 +69,33 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 	}
 
 	_trajectory[2].reset(0.f, 0.7f, _position(2));
+	_initEkfResetCounters();
+}
+
+void FlightTaskAutoLineSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.x)) { setpoints.x = _position(0); }
+
+	if (!PX4_ISFINITE(setpoints.y)) { setpoints.y = _position(1); }
+
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vx)) { setpoints.vx = _velocity(0); }
+
+	if (!PX4_ISFINITE(setpoints.vy)) { setpoints.vy = _velocity(1); }
+
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
@@ -108,6 +141,14 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 	const float max = (constrain > FLT_EPSILON) ? constrain : 0.f;
 
 	return math::constrain(val, min, max);
+}
+
+void FlightTaskAutoLineSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskAutoLineSmoothVel::_checkEkfResetCounters()
