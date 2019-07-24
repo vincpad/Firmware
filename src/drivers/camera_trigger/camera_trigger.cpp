@@ -132,7 +132,7 @@ public:
 	/**
 	 * Start the task.
 	 */
-	void		start();
+	bool		start();
 
 	/**
 	 * Stop the task.
@@ -442,9 +442,12 @@ CameraTrigger::shoot_once()
 
 }
 
-void
+bool
 CameraTrigger::start()
 {
+	if (_camera_interface == nullptr) {
+		return false;
+	}
 
 	if ((_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	     _trigger_mode == TRIGGER_MODE_DISTANCE_ALWAYS_ON) &&
@@ -472,6 +475,8 @@ CameraTrigger::start()
 
 	// start to monitor at high rate for trigger enable command
 	work_queue(LPWORK, &_work, (worker_t)&CameraTrigger::cycle_trampoline, this, USEC2TICK(1));
+
+	return true;
 
 }
 
@@ -876,7 +881,12 @@ int camera_trigger_main(int argc, char *argv[])
 			return 1;
 		}
 
-		camera_trigger::g_camera_trigger->start();
+		if (!camera_trigger::g_camera_trigger->start()) {
+			camera_trigger::g_camera_trigger->stop();
+			PX4_WARN("failed to start camera trigger");
+			return 1;
+		}
+
 		return 0;
 	}
 
