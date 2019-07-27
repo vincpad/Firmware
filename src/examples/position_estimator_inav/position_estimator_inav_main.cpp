@@ -55,6 +55,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -363,6 +364,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&sensor, 0, sizeof(sensor));
 	struct vehicle_gps_position_s gps;
 	memset(&gps, 0, sizeof(gps));
+	struct vehicle_angular_velocity_s angular_velocity;
+	memset(&angular_velocity, 0, sizeof(angular_velocity));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
 	struct vehicle_local_position_s pos;
@@ -388,6 +391,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int vehicle_angular_velocity_sub = orb_subscribe(ORB_ID(vehicle_angular_velocity));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	int visual_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
@@ -525,6 +529,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 			}
 
+			orb_copy(ORB_ID(vehicle_angular_velocity), vehicle_angular_velocity_sub, &angular_velocity);
+
 			/* sensor combined */
 			orb_check(sensor_combined_sub, &updated);
 
@@ -652,8 +658,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					}
 
 					/* set this flag if flow should be accurate according to current velocity and attitude rate estimate */
-					flow_accurate = fabsf(body_v_est[1] / flow_dist - att.rollspeed) < max_flow &&
-							fabsf(body_v_est[0] / flow_dist + att.pitchspeed) < max_flow;
+					flow_accurate = fabsf(body_v_est[1] / flow_dist - angular_velocity.rollspeed) < max_flow &&
+							fabsf(body_v_est[0] / flow_dist + angular_velocity.pitchspeed) < max_flow;
 
 					/*calculate offset of flow-gyro using already calibrated gyro from autopilot*/
 					flow_gyrospeed[0] = flow.gyro_x_rate_integral / (float)flow.integration_timespan * 1000000.0f;
@@ -677,9 +683,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 						flow_gyrospeed_filtered[0] = (flow_gyrospeed[0] + n_flow * flow_gyrospeed_filtered[0]) / (n_flow + 1);
 						flow_gyrospeed_filtered[1] = (flow_gyrospeed[1] + n_flow * flow_gyrospeed_filtered[1]) / (n_flow + 1);
 						flow_gyrospeed_filtered[2] = (flow_gyrospeed[2] + n_flow * flow_gyrospeed_filtered[2]) / (n_flow + 1);
-						att_gyrospeed_filtered[0] = (att.pitchspeed + n_flow * att_gyrospeed_filtered[0]) / (n_flow + 1);
-						att_gyrospeed_filtered[1] = (att.rollspeed + n_flow * att_gyrospeed_filtered[1]) / (n_flow + 1);
-						att_gyrospeed_filtered[2] = (att.yawspeed + n_flow * att_gyrospeed_filtered[2]) / (n_flow + 1);
+						att_gyrospeed_filtered[0] = (angular_velocity.pitchspeed + n_flow * att_gyrospeed_filtered[0]) / (n_flow + 1);
+						att_gyrospeed_filtered[1] = (angular_velocity.rollspeed + n_flow * att_gyrospeed_filtered[1]) / (n_flow + 1);
+						att_gyrospeed_filtered[2] = (angular_velocity.yawspeed + n_flow * att_gyrospeed_filtered[2]) / (n_flow + 1);
 						n_flow++;
 					}
 

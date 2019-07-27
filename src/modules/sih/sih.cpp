@@ -493,15 +493,12 @@ void Sih::publish_sih()
     _att_gt.q[1]=_q(1);
     _att_gt.q[2]=_q(2);
     _att_gt.q[3]=_q(3);
-    _att_gt.rollspeed=_w_B(0);
-    _att_gt.pitchspeed=_w_B(1);
-    _att_gt.yawspeed=_w_B(2);
     if (_att_gt_sub != nullptr) {
         orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_sub, &_att_gt);
     } else {
         _att_gt_sub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
     }
-} 
+}
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 {

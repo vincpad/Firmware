@@ -617,6 +617,7 @@ void Logger::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
+	add_topic("vehicle_angular_velocity", 30);
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
@@ -642,6 +643,7 @@ void Logger::add_default_topics()
 	add_topic("position_controller_status");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
+	add_topic("vehicle_angular_velocity_groundtruth", 10);
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);

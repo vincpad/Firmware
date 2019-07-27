@@ -2431,10 +2431,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
 
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
-
 		if (_attitude_pub == nullptr) {
 			_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 
