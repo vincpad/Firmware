@@ -139,7 +139,7 @@ static float min_stick_change = 0.25f;
 static struct vehicle_status_s status = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
+static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_ARRAY_SIZE];
 static struct commander_state_s internal_state = {};
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
@@ -2701,7 +2701,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			return TRANSITION_DENIED;
 		}
 
-		int new_mode = _flight_mode_slots[sp_man.mode_slot];
+		int new_mode = _flight_mode_slots[sp_man.mode_slot - 1];
 
 		if (new_mode < 0) {
 			/* slot is unused */
